@@ -31,6 +31,29 @@ class TrackPoint(var id: Int = 0,
                 ) extends KeyedEntity[Int] {
 }
 
+class Segment(var id: Int = 0,
+              var segname: String = "",
+              var segdescr: String = "",
+              var segfechaini: Int = 0,
+              var segfechafin: Int = 0,
+              var segtimeup: Int = 0,
+              var segtimedown: Int = 0,
+              var segmaxalt: Double = 0,
+              var segminalt: Double = 0,
+              var segavgspeed: Double = 0,
+              var segupalt: Double = 0,
+              var segdownalt: Double = 0,
+              var segdist: Double = 0,
+              var segtimemov: Int = 0,
+              var segtrack: Int = 0,
+              var segmaxspeed: Double = 0,
+              var segcolor: Int = 0,
+              var segstroke: Double = 0,
+              var segfill: Int = 0,
+              var segfillColor: Int = 0
+             ) extends KeyedEntity[Int] {
+}
+
 //class Topic2Article(val TOPIC: Long, val ARTICLE: Long, var color: Int) extends KeyedEntity[CompositeKey2[Long, Long]] {
 //   def id = compositeKey(TOPIC, ARTICLE)
 //}
@@ -56,12 +79,16 @@ object DB extends Schema with Logging {
 
   val tracks: Table[Track] = table[Track]("tracks")
   val trackPoints: Table[TrackPoint] = table[TrackPoint]("trackpoints")
+  val segments: Table[Segment] = table[Segment]("segments")
 
   // there are issues in squeryl with renaming of columns ("named"). if a foreign key does not work, use uppercase!
   on(tracks)(t => declare(
     t.id.is(named("_id"))
   ))
   on(trackPoints)(t => declare(
+    t.id.is(named("_id"))
+  ))
+  on(segments)(t => declare(
     t.id.is(named("_id"))
   ))
 

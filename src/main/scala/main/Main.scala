@@ -47,8 +47,8 @@ object Settings {
 }
 
 class ScrollPanImageView extends ScrollPane {
-  var img: Image = _
-  var bgimage: WritableImage = _
+  var img: Image = _ // this hosts the image
+  var bgimage: WritableImage = _ // this writes onto img.
 
   val imageView = new ImageView {
     preserveRatio = true
@@ -102,6 +102,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
 
   val tracks = new ObservableBuffer[db.Track]()
   val folders = new ArrayBuffer[String]()
+  var imgOrig: Image = _
 
   private def createMenuBar = new MenuBar {
     useSystemMenuBar = true
@@ -193,23 +194,11 @@ class MainScene(stage: Stage) extends Scene with Logging {
 
   def loadTrack(tt: db.Track): Unit = {
     debug("Loading track: " + tt)
-
-    val timeStart = tt.trackfechaini
     transaction {
-      // find end time
-      var timeEnd = Long.MaxValue
-      val res = from(DB.tracks)(t => where(t.trackfechaini gt timeStart) select t orderBy t.trackfechaini).headOption
-      res.foreach(t => {
-        debug("  next track: " + t)
-        timeEnd = t.trackfechaini
-      })
-
-      // Load trackpoints
-      val tps = from(DB.trackPoints)(tp => where( (tp.trkpttime gt timeStart) and (timeEnd gt tp.trkpttime)) select tp orderBy tp.trkpttime).toList
-      debug("tps.len=" + tps.size)
-
-      plotTrackPoints2(tps)
-
+      val segids = from(DB.segments)(s => where(s.segtrack === tt.id) select s.id).toList
+      val trkpts = from(DB.trackPoints)(tp => where( tp.trkptseg in segids ) select tp orderBy tp.trkpttime)
+      debug("  loaded #trkps : " + trkpts.size)
+      plotTrackPoints2(trkpts.toList)
     }
   }
 
@@ -239,7 +228,9 @@ class MainScene(stage: Stage) extends Scene with Logging {
           override def call(): Unit = {
             tracks.indices.foreach(iii => {
               updateProgress(iii, tracks.length)
-              runUIwait { loadTrack(tracks(iii)) }
+              runUIwait {
+                loadTrack(tracks(iii))
+              }
               Thread.sleep(10)
               if (isCancelled) throw new InterruptedException("interrupted!")
             })
@@ -256,6 +247,11 @@ class MainScene(stage: Stage) extends Scene with Logging {
         }.showSaveDialog(scene.value.getWindow)
         if (file != null)
           ImageIO.write(SwingFXUtils.fromFXImage(spiv.bgimage, null), format, file)
+      }
+    }
+    children += new Button("Reset picture") {
+      onAction = (_: ActionEvent) => {
+        spiv.setImage(imgOrig)
       }
     }
   }
@@ -330,10 +326,10 @@ class MainScene(stage: Stage) extends Scene with Logging {
 
       // for drawing: set vars
       val img1 = coverage.getRenderedImage
-      val img2 = awt2jfxImage(img1)
+      imgOrig = awt2jfxImage(img1)
       updateMessage("Showing image...")
       runUIwait{
-        spiv.setImage(img2)
+        spiv.setImage(imgOrig)
       }
     }
   }
