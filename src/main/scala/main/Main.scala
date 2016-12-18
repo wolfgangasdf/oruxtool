@@ -20,7 +20,6 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem
 import util._
 
 import scala.collection.mutable.ArrayBuffer
-import scala.language.{implicitConversions, reflectiveCalls}
 import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
@@ -176,7 +175,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
   def plotTrackPoints2(tps: List[TrackPoint]) {
     var olddp: DirectPosition2D = null
     tps.foreach( tp => {
-      val dp = new DirectPosition2D(tp.trkptlon, tp.trkptlat)
+      val dp = new DirectPosition2D(tp.trkptlon.getOrElse(0), tp.trkptlat.getOrElse(0))
       val dist = if (olddp != null) dp.distance(olddp) else 0
       val dpgrid = coverage.getGridGeometry.worldToGrid(dp)
       //debug(s"ggg: ${dpgrid.getCoordinateValue(0)} ${dpgrid.getCoordinateValue(1)}")
@@ -293,19 +292,19 @@ class MainScene(stage: Stage) extends Scene with Logging {
         transaction {
           from(DB.tracks)(a => select(a)).foreach(aa => {
             debug(s"loading track: ${aa.id }: ${aa.toString }")
-            if (aa.trackfolder == null || aa.trackfolder == "---") // TODO finish folder handling...
+            if (aa.trackfolder.getOrElse("---") == "---") // TODO finish folder handling...
               tracks += aa
-            if (!folders.contains(aa.trackfolder)) folders += aa.trackfolder
-
+            aa.trackfolder.foreach(tf => if (!folders.contains(tf)) folders += tf)
           })
         }
+        info(s"folders: [${folders.mkString(",")}]")
       }
 
       updateMessage("Loading image...")
       // TODO open image dialog...
       // load geotiff, must be in lat/lon format!
-      val gtf = new java.io.File("/Unencrypted_Data/incoming/firefox/landsat-nl-geotiff.tif") // NL
-      //    val gtf = new java.io.File("/Unencrypted_Data/incoming/firefox/landsat-leiden-geotiff.tif") // Leiden
+      val gtf = new java.io.File("/Unencrypted_Data/Pics/oruxtool/landsat-nl-geotiff.tif") // NL
+      //    val gtf = new java.io.File("/Unencrypted_Data/Pics/oruxtool/landsat-leiden-geotiff.tif") // Leiden
 
       val hints = new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, DefaultGeographicCRS.WGS84)
       val gtreader = new GeoTiffReader(gtf, hints)

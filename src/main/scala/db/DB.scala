@@ -11,46 +11,46 @@ import java.util.Date
 
 
 class Track(var id: Int = 0,
-            var trackname: String = "",
-            var trackfechaini: Long = 0, // start unix time
-            var trackfolder: String = ""
+            var trackname: Option[String],
+            var trackfechaini: Option[Long], // start unix time
+            var trackfolder: Option[String]
            ) extends KeyedEntity[Int] with Logging {
   def getTimeString: String = {
     val sdf = new SimpleDateFormat("yyyyMMdd HH:mm:ss")
-    Try( sdf.format(new Date(trackfechaini)) ).getOrElse("date error")
+    Try( sdf.format(new Date(trackfechaini.getOrElse(0L))) ).getOrElse("date error")
   }
-  override def toString: String = s"[$id][$trackfolder] $trackname [$getTimeString]"
+  override def toString: String = s"[$id][${trackfolder.getOrElse("null")}] ${trackname.getOrElse("null")} [$getTimeString]"
 }
 
 class TrackPoint(var id: Int = 0,
-                 var trkptlat: Double,
-                 var trkptlon: Double,
-                 var trkptalt: Double,
-                 var trkpttime: Int,
-                 var trkptseg: Int
+                 var trkptlat: Option[Double],
+                 var trkptlon: Option[Double],
+                 var trkptalt: Option[Double],
+                 var trkpttime: Option[Int],
+                 var trkptseg: Option[Int]
                 ) extends KeyedEntity[Int] {
 }
 
 class Segment(var id: Int = 0,
-              var segname: String = "",
-              var segdescr: String = "",
-              var segfechaini: Int = 0,
-              var segfechafin: Int = 0,
-              var segtimeup: Int = 0,
-              var segtimedown: Int = 0,
-              var segmaxalt: Double = 0,
-              var segminalt: Double = 0,
-              var segavgspeed: Double = 0,
-              var segupalt: Double = 0,
-              var segdownalt: Double = 0,
-              var segdist: Double = 0,
-              var segtimemov: Int = 0,
-              var segtrack: Int = 0,
-              var segmaxspeed: Double = 0,
-              var segcolor: Int = 0,
-              var segstroke: Double = 0,
-              var segfill: Int = 0,
-              var segfillColor: Int = 0
+              var segname: Option[String],
+              var segdescr: Option[String],
+              var segfechaini: Option[Int],
+              var segfechafin: Option[Int],
+              var segtimeup: Option[Int],
+              var segtimedown: Option[Int],
+              var segmaxalt: Option[Double],
+              var segminalt: Option[Double],
+              var segavgspeed: Option[Double],
+              var segupalt: Option[Double],
+              var segdownalt: Option[Double],
+              var segdist: Option[Double],
+              var segtimemov: Option[Int],
+              var segtrack: Option[Int],
+              var segmaxspeed: Option[Double],
+              var segcolor: Option[Int],
+              var segstroke: Option[Double],
+              var segfill: Option[Int],
+              var segfillColor: Option[Int]
              ) extends KeyedEntity[Int] {
 }
 
