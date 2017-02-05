@@ -13,7 +13,7 @@ Import / export possibilities:
 
 ### How to use ###
 
-* Get Java JRE >= 8u101
+* Get the [Java JRE](http://www.oracle.com/technetwork/java/javase/downloads/index.html) >= 8u101. Don't forget to untick the [crapware](https://www.google.com/search?q=java+crapware) installer, and/or [disable it permanently](https://www.java.com/en/download/faq/disable_offers.xml)!
 * [Download the zip](https://bitbucket.org/wolfgang/oruxtool/downloads) for Mac or (Windows, Linux), extract it somewhere and double-click the app (Mac) or
   jar file (Windows, Linux).
 * copy the oruxmaps database (usually `internal sdcard / oruxmaps / tracklogs / oruxmapstracks.db`) to your computer and open it in oruxtool.
@@ -47,6 +47,7 @@ contact: wolfgang.loeffler@gmail.com
 * [sbt-buildinfo](https://github.com/sbt/sbt-buildinfo) to access build information
 * [sbt-appbundle](https://github.com/Sciss/sbt-appbundle) to make the mac app bundle
 * a modified version of [universalJavaApplicationStub](https://github.com/tofi86/universalJavaApplicationStub) to launch on Mac
+* [JPX](https://github.com/jenetics/jpx) for GPX export
 
 ### License ###
 [GPL](https://www.gnu.org/licenses/gpl.html)

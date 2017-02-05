@@ -16,6 +16,7 @@ libraryDependencies ++= Seq(
   "org.squeryl" %% "squeryl" % "0.9.6-RC4" withSources() withJavadoc(),
   "org.scalaj" %% "scalaj-http" % "1.1.6",
   "org.xerial" % "sqlite-jdbc" % "3.8.7",
+  "io.jenetics" % "jpx" % "1.0.1",
   "org.geotools" % "gt-shapefile" % geotoolsversion,
   "org.geotools" % "gt-image" % geotoolsversion,
   "org.geotools" % "gt-shapefile" % geotoolsversion,

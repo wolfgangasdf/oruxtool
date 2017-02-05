@@ -10,11 +10,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 
-class Track(var id: Int = 0,
+class Track(var id: Long = 0,
             var trackname: Option[String],
             var trackfechaini: Option[Long], // start unix time
             var trackfolder: Option[String]
-           ) extends KeyedEntity[Int] with Logging {
+           ) extends KeyedEntity[Long] with Logging {
   def getTimeString: String = {
     val sdf = new SimpleDateFormat("yyyyMMdd HH:mm:ss")
     Try( sdf.format(new Date(trackfechaini.getOrElse(0L))) ).getOrElse("date error")
@@ -22,41 +22,37 @@ class Track(var id: Int = 0,
   override def toString: String = s"[$id][${trackfolder.getOrElse("null")}] ${trackname.getOrElse("null")} [$getTimeString]"
 }
 
-class TrackPoint(var id: Int = 0,
+class TrackPoint(var id: Long = 0,
                  var trkptlat: Option[Double],
                  var trkptlon: Option[Double],
                  var trkptalt: Option[Double],
-                 var trkpttime: Option[Int],
-                 var trkptseg: Option[Int]
-                ) extends KeyedEntity[Int] {
+                 var trkpttime: Option[Long],
+                 var trkptseg: Option[Long]
+                ) extends KeyedEntity[Long] {
 }
 
-class Segment(var id: Int = 0,
+class Segment(var id: Long = 0,
               var segname: Option[String],
               var segdescr: Option[String],
-              var segfechaini: Option[Int],
-              var segfechafin: Option[Int],
-              var segtimeup: Option[Int],
-              var segtimedown: Option[Int],
+              var segfechaini: Option[Long],
+              var segfechafin: Option[Long],
+              var segtimeup: Option[Long],
+              var segtimedown: Option[Long],
               var segmaxalt: Option[Double],
               var segminalt: Option[Double],
               var segavgspeed: Option[Double],
               var segupalt: Option[Double],
               var segdownalt: Option[Double],
               var segdist: Option[Double],
-              var segtimemov: Option[Int],
-              var segtrack: Option[Int],
+              var segtimemov: Option[Long],
+              var segtrack: Option[Long],
               var segmaxspeed: Option[Double],
-              var segcolor: Option[Int],
+              var segcolor: Option[Long],
               var segstroke: Option[Double],
               var segfill: Option[Int],
               var segfillColor: Option[Int]
-             ) extends KeyedEntity[Int] {
+             ) extends KeyedEntity[Long] {
 }
-
-//class Topic2Article(val TOPIC: Long, val ARTICLE: Long, var color: Int) extends KeyedEntity[CompositeKey2[Long, Long]] {
-//   def id = compositeKey(TOPIC, ARTICLE)
-//}
 
 object SquerylEntrypointForMyApp extends PrimitiveTypeMode {
   // http://squeryl.org/0.9.6.html
@@ -93,12 +89,12 @@ object DB extends Schema with Logging {
   ))
 
   def initialize() {
-
-    info("Loading database at " + Settings.dbpath + " ...")
-    val dbs = s"jdbc:sqlite:${Settings.dbpath}"
+    terminate()
+    val dbp = Settings.prefs.get(Settings.DBPATH, "")
+    info("Loading database at " + dbp + " ...")
+    val dbs = s"jdbc:sqlite:$dbp"
 
     Class.forName("org.sqlite.JDBC")
-
     SessionFactory.concreteFactory = Some(() => Session.create(java.sql.DriverManager.getConnection(dbs), new SQLiteAdapter()))
 
     transaction {
@@ -108,5 +104,8 @@ object DB extends Schema with Logging {
     info("Database loaded!")
   }
 
+  def terminate(): Unit = {
+    Session.currentSessionOption.foreach(s => s.close)
+  }
 
 }

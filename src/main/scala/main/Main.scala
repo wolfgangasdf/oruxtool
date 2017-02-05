@@ -1,7 +1,9 @@
 package main
 
-
+import io.jenetics.jpx
 import java.io
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.prefs.Preferences
 import javafx.concurrent.Task
 import javax.imageio.ImageIO
 
@@ -19,17 +21,17 @@ import org.opengis.geometry.Envelope
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import util._
 
-import scala.collection.mutable.ArrayBuffer
 import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.collections.ObservableBuffer
 import scalafx.embed.swing.SwingFXUtils
 import scalafx.event.ActionEvent
-import scalafx.geometry.{Insets, Orientation, Point2D}
+import scalafx.geometry.{Insets, Orientation, Point2D, Pos}
 import scalafx.scene.Scene
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.Button._
+import scalafx.scene.control.Label._
 import scalafx.scene.control.TextField._
 import scalafx.scene.control._
 import scalafx.scene.image._
@@ -40,7 +42,10 @@ import scalafx.stage.{FileChooser, Stage, WindowEvent}
 
 
 object Settings {
-  var dbpath = "/Unencrypted_Data/temp/oruxmapstracks.db"
+  val prefs: Preferences = Preferences.userRoot().node("oruxtool")
+  val DBPATH = "lastdbpath"
+  val IMGPATH = "lastimgpath"
+  val EXPORTFILEPATH = "exportfilepath"
   val MINPOINTDIST = 3 // draw points not closer than this distance
   val MAXDISTANCE = 0.03 // max. distance between points to draw connected
 }
@@ -51,6 +56,7 @@ class ScrollPanImageView extends ScrollPane {
 
   val imageView = new ImageView {
     preserveRatio = true
+    tooltip = new Tooltip("zoom: shift+scroll")
   }
 
   def setImage(image: Image): Unit = {
@@ -100,8 +106,11 @@ class ScrollPanImageView extends ScrollPane {
 class MainScene(stage: Stage) extends Scene with Logging {
 
   val tracks = new ObservableBuffer[db.Track]()
-  val folders = new ArrayBuffer[String]()
+  val folders = new ObservableBuffer[String]()
   var imgOrig: Image = _
+
+  val ALLFOLDERS = "### all ###"
+  val NOFOLDER = "### no folder ###" // --- or null, see below
 
   private def createMenuBar = new MenuBar {
     useSystemMenuBar = true
@@ -178,8 +187,6 @@ class MainScene(stage: Stage) extends Scene with Logging {
       val dp = new DirectPosition2D(tp.trkptlon.getOrElse(0), tp.trkptlat.getOrElse(0))
       val dist = if (olddp != null) dp.distance(olddp) else 0
       val dpgrid = coverage.getGridGeometry.worldToGrid(dp)
-      //debug(s"ggg: ${dpgrid.getCoordinateValue(0)} ${dpgrid.getCoordinateValue(1)}")
-
       val (rx, ry) = (dpgrid.getCoordinateValue(0), dpgrid.getCoordinateValue(1))
       if (olddp == null || dist > Settings.MAXDISTANCE) {
         drawpoint(rx, ry)
@@ -192,12 +199,14 @@ class MainScene(stage: Stage) extends Scene with Logging {
   }
 
   def loadTrack(tt: db.Track): Unit = {
-    debug("Loading track: " + tt)
-    transaction {
-      val segids = from(DB.segments)(s => where(s.segtrack === tt.id) select s.id).toList
-      val trkpts = from(DB.trackPoints)(tp => where( tp.trkptseg in segids ) select tp orderBy tp.trkpttime)
-      debug("  loaded #trkps : " + trkpts.size)
-      plotTrackPoints2(trkpts.toList)
+    if (tt != null) {
+      debug("Loading track: " + tt)
+      transaction {
+        val segids = from(DB.segments)(s => where(s.segtrack === tt.id) select s.id).toList
+        val trkpts = from(DB.trackPoints)(tp => where( tp.trkptseg in segids ) select tp orderBy tp.trkpttime)
+        debug("  loaded #trkps : " + trkpts.size)
+        plotTrackPoints2(trkpts.toList)
+      }
     }
   }
 
@@ -219,8 +228,49 @@ class MainScene(stage: Stage) extends Scene with Logging {
     children += statusBarLabel
   }
 
+  val folderActionDisabled = new AtomicBoolean(false)
+  val cbFolders = new ChoiceBox[String] {
+    items.setValue(folders)
+    onAction = (_: ActionEvent) => {
+      if (!folderActionDisabled.get) new MyWorker[Unit]("Load tracks db", loadTracksDB).runInBackground()
+    }
+  }
+  val cbSelectedOnly = new CheckBox("selected tracks only:")
   val menuBar: MenuBar = createMenuBar
   val statusBar = new HBox {
+    alignment = Pos.CenterLeft
+    children += new Button("Open track db") {
+      onAction = (_: ActionEvent) => {
+        val fc = new FileChooser() {
+          title = "Open oruxmaps.db"
+        }
+        val inidir = new java.io.File(Settings.prefs.get(Settings.DBPATH, "/")).getParentFile
+        if (inidir != null) fc.setInitialDirectory(inidir)
+        val res: java.io.File = fc.showOpenDialog(scene.value.getWindow)
+        val ff = new java.io.File(res.getPath)
+        if (ff != null && ff.canRead) {
+          Settings.prefs.put(Settings.DBPATH, res.toString)
+          new MyWorker[Unit]("Load tracks db", loadTracksDB).runInBackground()
+        }
+      }
+    }
+    children += new Label("Folder:")
+    children += cbFolders
+    children += new Button("Open geotiff") {
+      onAction = (_: ActionEvent) => {
+        val fc = new FileChooser() {
+          title = "Open geotiff background image"
+        }
+        val inidir = new java.io.File(Settings.prefs.get(Settings.IMGPATH, "/")).getParentFile
+        if (inidir != null) fc.setInitialDirectory(inidir)
+        val res: java.io.File = fc.showOpenDialog(scene.value.getWindow)
+        val ff = new java.io.File(res.getPath)
+        if (ff != null && ff.canRead) {
+          Settings.prefs.put(Settings.IMGPATH, res.toString)
+          new MyWorker[Unit]("Load image", loadImage).runInBackground()
+        }
+      }
+    }
     children += new Button("Draw all tracks") {
       onAction = (_: ActionEvent) => {
         val task = new Task[Unit] {
@@ -238,7 +288,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
         new MyWorker("Draw all tracks", task).runInBackground()
       }
     }
-    children += new Button("Save pic...") {
+    children += new Button("Save pic") {
       onAction = (_: ActionEvent) => {
         val format = "png"
         val file = new FileChooser {
@@ -253,6 +303,55 @@ class MainScene(stage: Stage) extends Scene with Logging {
         spiv.setImage(imgOrig)
       }
     }
+    children += new Button("Export tracks") {
+      onAction = (_: ActionEvent) => {
+        val task = new Task[Unit] {
+          override def call(): Unit = {
+            val gpx = jpx.GPX.builder()
+            val indices: Seq[Int] = if (cbSelectedOnly.selected.value)
+              tracksList.getSelectionModel.getSelectedIndices.map(_.toInt)
+            else
+              tracks.indices.toList
+            indices.foreach(iii => {
+              updateProgress(iii, tracks.length)
+              val jt = jpx.Track.builder()
+              val tt = tracks(iii)
+              jt.name(tt.trackname.get)
+              transaction {
+                val segids = from(DB.segments)(s => where(s.segtrack === tt.id) select s.id).toList
+                for (segid <- segids) {
+                  val trkpts = from(DB.trackPoints)(tp => where( tp.trkptseg === segid) select tp orderBy tp.trkpttime)
+                  val js = jpx.TrackSegment.builder()
+                  for (trkpt <- trkpts) {
+                    js.addPoint(jpx.WayPoint.builder().
+                      lat(trkpt.trkptlat.get).lon(trkpt.trkptlon.get).ele(trkpt.trkptalt.get).
+                      time(trkpt.trkpttime.getOrElse(0L)).build())
+                  }
+                  jt.addSegment(js.build())
+                }
+              }
+              gpx.addTrack(jt.build())
+              if (isCancelled) throw new InterruptedException("interrupted!")
+            })
+            jpx.GPX.write(gpx.build(), Settings.prefs.get(Settings.EXPORTFILEPATH, ""))
+          }
+        }
+
+        val fc = new FileChooser() {
+          title = "Select gpx export filename"
+          extensionFilters += new FileChooser.ExtensionFilter("GPX files (*.gpx)", "*.gpx")
+        }
+        val inidir = new java.io.File(Settings.prefs.get(Settings.EXPORTFILEPATH, "/")).getParentFile
+        if (inidir != null) fc.setInitialDirectory(inidir)
+        val res: java.io.File = fc.showSaveDialog(scene.value.getWindow)
+        val ff = new java.io.File(res.getPath)
+        if (ff != null) {
+          Settings.prefs.put(Settings.EXPORTFILEPATH, res.toString)
+          new MyWorker("Export tracks", task).runInBackground()
+        }
+      }
+    }
+    children += cbSelectedOnly
   }
   val maincontent = new BorderPane() {
     top = new VBox {
@@ -281,34 +380,48 @@ class MainScene(stage: Stage) extends Scene with Logging {
   var coverage: GridCoverage2D = _
 
 
-  def loadStuff = new Task[Unit]() {
+  def loadTracksDB: Task[Unit] = new Task[Unit]() {
     override def call(): Unit = {
       DB.initialize()
 
       updateMessage("Loading tracks from DB...")
       runUIwait {
+        folderActionDisabled.set(true)
+        val oldf = Option(cbFolders.value.value).getOrElse(NOFOLDER)
         tracks.clear()
         folders.clear()
+        folders += ALLFOLDERS
+        folders += NOFOLDER
         transaction {
           from(DB.tracks)(a => select(a)).foreach(aa => {
             debug(s"loading track: ${aa.id }: ${aa.toString }")
-            if (aa.trackfolder.getOrElse("---") == "---") // TODO finish folder handling...
-              tracks += aa
+            val addit = if (oldf == NOFOLDER)
+              aa.trackfolder.getOrElse("---") == "---"
+            else if (oldf == ALLFOLDERS)
+              true
+            else
+              aa.trackfolder.getOrElse("---") == oldf
+            if (addit) tracks += aa
             aa.trackfolder.foreach(tf => if (!folders.contains(tf)) folders += tf)
           })
+          cbFolders.setValue(oldf)
         }
+        folderActionDisabled.set(false)
         info(s"folders: [${folders.mkString(",")}]")
       }
 
+    }
+  }
+
+  def loadImage: Task[Unit] = new Task[Unit]() {
+    override def call(): Unit = {
       updateMessage("Loading image...")
-      // TODO open image dialog...
       // load geotiff, must be in lat/lon format!
-      val gtf = new java.io.File("/Unencrypted_Data/Pics/oruxtool/landsat-nl-geotiff.tif") // NL
-      //    val gtf = new java.io.File("/Unencrypted_Data/Pics/oruxtool/landsat-leiden-geotiff.tif") // Leiden
+      val gtf = new java.io.File(Settings.prefs.get(Settings.IMGPATH,""))
 
       val hints = new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, DefaultGeographicCRS.WGS84)
       val gtreader = new GeoTiffReader(gtf, hints)
-      // this does not work... remoed also epsg requirement
+      // this does not work... removed also epsg requirement
       // val format = GridFormatFinder.findFormat(gtf)
       // val gtreader = format.getReader(gtf)
 
@@ -333,8 +446,16 @@ class MainScene(stage: Stage) extends Scene with Logging {
     }
   }
 
+
+
   def afterShown(): Unit = {
-    new MyWorker[Unit]("Initialize", loadStuff).runInBackground()
+    val t1 = loadTracksDB
+    t1.onSucceeded = () => {
+      if (folders.nonEmpty) {
+        new MyWorker[Unit]("Load image", loadImage).runInBackground()
+      }
+    }
+    new MyWorker[Unit]("Load tracks", t1).runInBackground()
   }
 }
 
@@ -395,6 +516,7 @@ object Main extends JFXApp with Logging {
 
   override def stopApp() {
     info("*************** stop app")
+    DB.terminate()
     sys.exit(0)
   }
 
