@@ -1,12 +1,11 @@
 # Oruxtool
 
-is a tool to access the [oruxmaps](http://oruxmaps.com) database. It has currently the following functionalities:
+is a tool to access the [oruxmaps](http://oruxmaps.com) database. It can't do much currently; I made it public due to the lack of any program like this. Current/possible future functionalities:
 
 * Uses Java 8 and runs on Mac, Windows, Linux.
-* select a track and display with background map TODO
-* select many tracks and visualize nicely TODO
+* select a track and display on geotiff background map
 * browse by oxusmaps folders TODO
-* move tracks around folders
+* move tracks around folders TODO
 
 Import / export possibilities:
 
