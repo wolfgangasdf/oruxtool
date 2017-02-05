@@ -1,15 +1,15 @@
 # Oruxtool
 
-is a tool to access the [oruxmaps](http://oruxmaps.com) database. It can't do much currently; I made it public due to the lack of any program like this. Current/possible future functionalities:
+Is a tool to access the [oruxmaps](http://oruxmaps.com) database. It can't do very much currently, I made it public due to the lack of any program like this. Current functionalities:
 
 * Uses Java 8 and runs on Mac, Windows, Linux.
-* select a track and display on geotiff background map
-* browse by oxusmaps folders TODO
-* move tracks around folders TODO
+* Browse by oruxmaps track-folder (or show all)
+* Load geotiff background map (see below)
+* Draw a track (or all) on the map
 
 Import / export possibilities:
 
-* mass GPX/KML/KMZ export TODO
+* Export selected/all tracks to a GPX file.
 
 ### How to use ###
 
@@ -36,7 +36,10 @@ Run Reftool from terminal and package it:
 ### Suggestions, bug reports, pull requests, contact ###
 Please use the bitbucket-provided tools for bug reports and contributed code. Anything is welcome!
 
-contact: wolfgang.loeffler@gmail.com
+### Background map images ###
+
+* [Landsat 8](http://landsatlook.usgs.gov/viewer.html) made very nice images. Use an `image mosaic`, export geotiff.
+Format `geographic (wgs84)` is important to get lat/lon, otherwise it's in UTM.
 
 ### Used technologies ###
 
