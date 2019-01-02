@@ -4,8 +4,10 @@ Is a tool to access the [oruxmaps](http://oruxmaps.com) database. It can't do ve
 
 * Uses Java 8 and runs on Mac, Windows, Linux.
 * Browse by oruxmaps track-folder (or show all)
-* Load geotiff background map (see below)
+* Load a [geotiff](http://trac.osgeo.org/geotiff/) background map (see below)
 * Draw a track (or all) on the map
+
+For now, it can't do any database manipulation tasks, but this would not be hard to implement, e.g., mass folder management.
 
 Import / export possibilities:
 
@@ -14,7 +16,7 @@ Import / export possibilities:
 ### How to use ###
 
 * Get the [Java JRE](http://www.oracle.com/technetwork/java/javase/downloads/index.html) >= 8u101. Don't forget to untick the [crapware](https://www.google.com/search?q=java+crapware) installer, and/or [disable it permanently](https://www.java.com/en/download/faq/disable_offers.xml)!
-* [Download the zip](https://bitbucket.org/wolfgang/oruxtool/downloads) for Mac or (Windows, Linux), extract it somewhere and double-click the app (Mac) or
+* [Download the zip](https://github.com/wolfgangasdf/oruxtool/releases) for Mac or (Windows, Linux), extract it somewhere and double-click the app (Mac) or
   jar file (Windows, Linux).
 * copy the oruxmaps database (usually `internal sdcard / oruxmaps / tracklogs / oruxmapstracks.db`) to your computer and open it in oruxtool.
 
@@ -34,7 +36,7 @@ Run Reftool from terminal and package it:
 * Package for all platforms: `sbt dist`. The resulting files are in `target/`
 
 ### Suggestions, bug reports, pull requests, contact ###
-Please use the bitbucket-provided tools for bug reports and contributed code. Anything is welcome!
+Please use the provided tools for bug reports and contributed code. Anything is welcome!
 
 ### Background map images ###
 
@@ -45,7 +47,7 @@ Format `geographic (wgs84)` is important to get lat/lon, otherwise it's in UTM.
 
 * [Scala](http://www.scala-lang.org) and [Scala Build Tool](http://www.scala-sbt.org)
 * [Scalafx](http://scalafx.org) as wrapper for [JavaFX](http://docs.oracle.com/javafx) for the graphical user interface
-* [Squeryl](http://squeryl.org) as database ORM & DSL, using [Apache Derby](http://db.apache.org/derby) embedded as backend
+* [Squeryl](http://squeryl.org) as database ORM & DSL, using [SQLite](https://www.sqlite.org) embedded as backend
 * [sbt-javafx](https://github.com/kavedaa/sbt-javafx) to make the runnable Reftool jar file
 * [sbt-buildinfo](https://github.com/sbt/sbt-buildinfo) to access build information
 * [sbt-appbundle](https://github.com/Sciss/sbt-appbundle) to make the mac app bundle

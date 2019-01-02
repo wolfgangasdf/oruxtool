@@ -134,7 +134,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
                     },
                     new Button("Open Oruxtool homepage") {
                       onAction = (_: ActionEvent) =>
-                        FileHelper.openURL("https://bitbucket.org/wolfgang/oruxtool")
+                        FileHelper.openURL("https://github.com/wolfgangasdf/oruxtool")
                     }
                   )
                 }

@@ -82,5 +82,5 @@ lazy val tdist = TaskKey[Unit]("dist")
 tdist := {
   tzipmac.value
   tzip.value
-  println("Created Sgar distribution files!")
+  println("Created distribution files!")
 }
