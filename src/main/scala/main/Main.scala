@@ -1,26 +1,26 @@
 package main
 
+import java.awt.Taskbar
+
 import io.jenetics.jpx
 import java.io
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.prefs.Preferences
+
 import javafx.concurrent.Task
 import javax.imageio.ImageIO
-
-import buildinfo.BuildInfo
 import db.SquerylEntrypointForMyApp._
-import db.{DB, TrackPoint}
+import db.{DB, Track, TrackPoint}
 import framework.Helpers._
 import framework.{Helpers, Logging, MyWorker}
 import org.geotools.coverage.grid.GridCoverage2D
-import org.geotools.factory.Hints
 import org.geotools.gce.geotiff.GeoTiffReader
 import org.geotools.geometry.DirectPosition2D
 import org.geotools.referencing.crs.DefaultGeographicCRS
+import org.geotools.util.factory.Hints
 import org.opengis.geometry.Envelope
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import util._
-
 import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
@@ -32,7 +32,6 @@ import scalafx.scene.Scene
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.Button._
 import scalafx.scene.control.Label._
-import scalafx.scene.control.TextField._
 import scalafx.scene.control._
 import scalafx.scene.image._
 import scalafx.scene.input.{MouseEvent, ScrollEvent}
@@ -54,7 +53,7 @@ class ScrollPanImageView extends ScrollPane {
   var img: Image = _ // this hosts the image
   var bgimage: WritableImage = _ // this writes onto img.
 
-  val imageView = new ImageView {
+  val imageView: ImageView = new ImageView {
     preserveRatio = true
     tooltip = new Tooltip("zoom: shift+scroll")
   }
@@ -81,7 +80,7 @@ class ScrollPanImageView extends ScrollPane {
 
   var zoomval = 1.0
   filterEvent(ScrollEvent.Any) {
-    (se: ScrollEvent) =>
+    se: ScrollEvent =>
       if (se.shiftDown) { // shift scroll for zoom around mouse cursor!
         // remember old position & zoom
         val posInImg = getPosInPic(se.x, se.y).multiply(1.0/zoomval)
@@ -122,23 +121,16 @@ class MainScene(stage: Stage) extends Scene with Logging {
               new Alert(AlertType.Information, "", ButtonType.Close) {
                 title = "About Oruxtool"
                 headerText = "Oruxtool - oruxmaps track database tool"
-                val cont = new VBox {
+                dialogPane.value.content = new VBox {
                   padding = Insets(15)
                   spacing = 15
                   children ++= Seq(
-                    new TextField {
-                      text = "Oruxtool version: " + BuildInfo.version; editable = false
-                    },
-                    new TextField {
-                      text = "Build time: " + BuildInfo.buildTime; editable = false
-                    },
                     new Button("Open Oruxtool homepage") {
                       onAction = (_: ActionEvent) =>
                         FileHelper.openURL("https://github.com/wolfgangasdf/oruxtool")
                     }
                   )
                 }
-                dialogPane.value.content = cont
               }.showAndWait()
             }
           }
@@ -210,26 +202,26 @@ class MainScene(stage: Stage) extends Scene with Logging {
     }
   }
 
-  val tracksList = new ListView[db.Track](tracks) {
+  val tracksList: ListView[Track] = new ListView[db.Track](tracks) {
     prefWidth = 50.0
     selectionModel().selectedItem.onChange { (_, _, tt) => loadTrack(tt) }
   }
 
-  val sph = new SplitPane {
+  private val sph = new SplitPane {
     orientation = Orientation.Horizontal
     dividerPositions = 0.15
-    items +=(tracksList, spiv)
+    items.addAll(tracksList, spiv)
   }
 
-  val statusBarLabel = new Label("") {
+  private val statusBarLabel = new Label("") {
     hgrow = Priority.Always
   }
-  val statusbar = new VBox {
+  private val statusbar = new VBox {
     children += statusBarLabel
   }
 
   val folderActionDisabled = new AtomicBoolean(false)
-  val cbFolders = new ChoiceBox[String] {
+  private val cbFolders = new ChoiceBox[String] {
     items.setValue(folders)
     onAction = (_: ActionEvent) => {
       if (!folderActionDisabled.get) new MyWorker[Unit]("Load tracks db", loadTracksDB).runInBackground()
@@ -237,7 +229,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
   }
   val cbSelectedOnly = new CheckBox("selected tracks only:")
   val menuBar: MenuBar = createMenuBar
-  val statusBar = new HBox {
+  private val statusBar = new HBox {
     alignment = Pos.CenterLeft
     children += new Button("Open track db") {
       onAction = (_: ActionEvent) => {
@@ -245,7 +237,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
           title = "Open oruxmaps.db"
         }
         val inidir = new java.io.File(Settings.prefs.get(Settings.DBPATH, "/")).getParentFile
-        if (inidir != null) fc.setInitialDirectory(inidir)
+        if (inidir != null && inidir.isDirectory) fc.setInitialDirectory(inidir)
         val res: java.io.File = fc.showOpenDialog(scene.value.getWindow)
         val ff = new java.io.File(res.getPath)
         if (ff != null && ff.canRead) {
@@ -262,7 +254,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
           title = "Open geotiff background image"
         }
         val inidir = new java.io.File(Settings.prefs.get(Settings.IMGPATH, "/")).getParentFile
-        if (inidir != null) fc.setInitialDirectory(inidir)
+        if (inidir != null && inidir.isDirectory) fc.setInitialDirectory(inidir)
         val res: java.io.File = fc.showOpenDialog(scene.value.getWindow)
         val ff = new java.io.File(res.getPath)
         if (ff != null && ff.canRead) {
@@ -309,7 +301,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
           override def call(): Unit = {
             val gpx = jpx.GPX.builder()
             val indices: Seq[Int] = if (cbSelectedOnly.selected.value)
-              tracksList.getSelectionModel.getSelectedIndices.map(_.toInt)
+              tracksList.getSelectionModel.getSelectedIndices.map(_.toInt).toSeq
             else
               tracks.indices.toList
             indices.foreach(iii => {
@@ -353,7 +345,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
     }
     children += cbSelectedOnly
   }
-  val maincontent = new BorderPane() {
+  private val maincontent = new BorderPane() {
     top = new VBox {
       children += menuBar
       children += statusBar
@@ -382,33 +374,39 @@ class MainScene(stage: Stage) extends Scene with Logging {
 
   def loadTracksDB: Task[Unit] = new Task[Unit]() {
     override def call(): Unit = {
-      DB.initialize()
+      try {
+        DB.initialize()
 
-      updateMessage("Loading tracks from DB...")
-      runUIwait {
-        folderActionDisabled.set(true)
-        val oldf = Option(cbFolders.value.value).getOrElse(NOFOLDER)
-        tracks.clear()
-        folders.clear()
-        folders += ALLFOLDERS
-        folders += NOFOLDER
-        transaction {
-          from(DB.tracks)(a => select(a)).foreach(aa => {
-            debug(s"loading track: ${aa.id }: ${aa.toString }")
-            val addit = if (oldf == NOFOLDER)
-              aa.trackfolder.getOrElse("---") == "---"
-            else if (oldf == ALLFOLDERS)
-              true
-            else
-              aa.trackfolder.getOrElse("---") == oldf
-            if (addit) tracks += aa
-            aa.trackfolder.foreach(tf => if (!folders.contains(tf)) folders += tf)
-          })
-          cbFolders.setValue(oldf)
+        updateMessage("Loading tracks from DB...")
+        runUIwait {
+          folderActionDisabled.set(true)
+          val oldf = Option(cbFolders.value.value).getOrElse(NOFOLDER)
+          tracks.clear()
+          folders.clear()
+          folders += ALLFOLDERS
+          folders += NOFOLDER
+          transaction {
+            from(DB.tracks)(a => select(a)).foreach(aa => {
+              debug(s"loading track: ${aa.id }: ${aa.toString }")
+              val addit = if (oldf == NOFOLDER)
+                aa.trackfolder.getOrElse("---") == "---"
+              else if (oldf == ALLFOLDERS)
+                true
+              else
+                aa.trackfolder.getOrElse("---") == oldf
+              if (addit) tracks += aa
+              aa.trackfolder.foreach(tf => if (!folders.contains(tf)) folders += tf)
+            })
+            cbFolders.setValue(oldf)
+          }
+          folderActionDisabled.set(false)
+          info(s"folders: [${folders.mkString(",")}]")
         }
-        folderActionDisabled.set(false)
-        info(s"folders: [${folders.mkString(",")}]")
+      } catch {
+        case e: Exception => error("can't load database! " + e.getMessage)
+          e.printStackTrace()
       }
+
 
     }
   }
@@ -462,21 +460,19 @@ class MainScene(stage: Stage) extends Scene with Logging {
 object Main extends JFXApp with Logging {
 
   // redirect console output, must happen on top of this object!
-  val oldOut = System.out
-  val oldErr = System.err
+  private val oldOut = System.out
+  private val oldErr = System.err
   var logps: io.FileOutputStream = _
   System.setOut(new io.PrintStream(new MyConsole(false), true))
   System.setErr(new io.PrintStream(new MyConsole(true), true))
 
-  val logfile = java.io.File.createTempFile("oruxtoollog",".txt")
+  private val logfile = java.io.File.createTempFile("oruxtoollog",".txt")
   logps = new io.FileOutputStream(logfile)
 
-  Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler {
-    override def uncaughtException(t: Thread, e: Throwable): Unit = {
-      error("Exception: " + e.getMessage)
-      e.printStackTrace()
-      if (stage.isShowing) Helpers.showExceptionAlert("", e)
-    }
+  Thread.currentThread().setUncaughtExceptionHandler((t: Thread, e: Throwable) => {
+    error("Exception: " + e.getMessage)
+    e.printStackTrace()
+    if (stage.isShowing) Helpers.showExceptionAlert("", e)
   })
 
   class MyConsole(errchan: Boolean) extends io.OutputStream {
@@ -511,6 +507,9 @@ object Main extends JFXApp with Logging {
       }
     }
   }
+
+  // Dock icon
+  if (Helpers.isMac) Taskbar.getTaskbar.setIconImage(ImageIO.read(getClass.getResource("/icons/icon_256x256.png")))
 
   loadMainScene()
 

@@ -2,7 +2,7 @@
 
 Is a tool to access the [oruxmaps](http://oruxmaps.com) database. It can't do very much currently, I made it public due to the lack of any program like this. Current functionalities:
 
-* Uses Java 8 and runs on Mac, Windows, Linux.
+* Runs on Mac, Windows, Linux.
 * Browse by oruxmaps track-folder (or show all)
 * Load a [geotiff](http://trac.osgeo.org/geotiff/) background map (see below)
 * Draw a track (or all) on the map
@@ -15,7 +15,6 @@ Import / export possibilities:
 
 ### How to use ###
 
-* Get the [Java JRE](http://www.oracle.com/technetwork/java/javase/downloads/index.html) >= 8u101. Don't forget to untick the [crapware](https://www.google.com/search?q=java+crapware) installer, and/or [disable it permanently](https://www.java.com/en/download/faq/disable_offers.xml)!
 * [Download the zip](https://github.com/wolfgangasdf/oruxtool/releases) for Mac or (Windows, Linux), extract it somewhere and double-click the app (Mac) or
   jar file (Windows, Linux).
 * copy the oruxmaps database (usually `internal sdcard / oruxmaps / tracklogs / oruxmapstracks.db`) to your computer and open it in oruxtool.
@@ -24,16 +23,16 @@ Everything should be self-explanatory (watch out for tooltips).
 
 ### How to develop, compile & package ###
 
-* Get Java JDK >= 8u101
-* check out the code (`hg clone ...` or download a zip) 
+* Get Java 13 from https://jdk.java.net
+* Clone the repository
 * I use the free community version of [IntelliJ IDEA](https://www.jetbrains.com/idea/download/) with the scala 
 plugin for development, just import the project to get started. 
 
-Run Reftool from terminal and package it:
+Packaging:
 
-* Install the [Scala Build Tool](http://www.scala-sbt.org/)
-* Compile and run manually: `sbt run`
-* Package for all platforms: `sbt dist`. The resulting files are in `target/`
+* Download JDKs for the other platforms (and/or adapt `cPlatforms` in `build.gradle.kts`), extract them and set the environment variables to it:
+  * `export JDK_MAC_HOME=...`, `export JDK_WIN_HOME=...`, `export JDK_LINUX_HOME=...`
+* Package for all platforms: `./gradlew dist`. The resulting files are in `build/crosspackage`
 
 ### Suggestions, bug reports, pull requests, contact ###
 Please use the provided tools for bug reports and contributed code. Anything is welcome!

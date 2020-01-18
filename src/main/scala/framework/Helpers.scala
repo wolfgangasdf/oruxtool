@@ -9,8 +9,6 @@ import scalafx.scene.layout.Priority
 
 object Helpers extends Logging {
 
-  val insetsstd = scalafx.geometry.Insets(5)
-
   // this should be used for anything in javafx startup, as the stacktrace is missing if e.g. an icon file is not present!
   def tryit[T]( f: => T ): T = {
     try {
@@ -38,19 +36,17 @@ object Helpers extends Logging {
     s.getBytes(encoding).map("%02x " format _).mkString
   }
 
-  def unit() {}
+  def unit(): Unit = {}
 
   // enqueue f in UI thread queue
-  def runUI( f: => Unit ) {
-    scalafx.application.Platform.runLater( new Runnable() {
-      def run() {
-        f
-      }
+  def runUI( f: => Unit ): Unit = {
+    scalafx.application.Platform.runLater(() => {
+      f
     })
   }
 
   // use carefully, remove if possible!
-  def runUIdelayed( f: => Unit, delay: Int = 200 ) {
+  def runUIdelayed( f: => Unit, delay: Int = 200 ): Unit = {
     val clickedTimer = new java.util.Timer()
     clickedTimer.schedule(
       new java.util.TimerTask {
@@ -63,7 +59,7 @@ object Helpers extends Logging {
   def runUIwait[T]( f: => T) : T = {
     @volatile var stat: T = null.asInstanceOf[T]
     val runnable = new Runnable() {
-      def run() {
+      def run(): Unit = {
         stat = f
       }
     }

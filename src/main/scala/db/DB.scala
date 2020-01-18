@@ -88,7 +88,7 @@ object DB extends Schema with Logging {
     t.id.is(named("_id"))
   ))
 
-  def initialize() {
+  def initialize(): Unit = {
     terminate()
     val dbp = Settings.prefs.get(Settings.DBPATH, "")
     info("Loading database at " + dbp + " ...")

@@ -11,8 +11,8 @@ class MyWorker[T](atitle: String, atask: javafx.concurrent.Task[T]) {
     override def createTask(): javafx.concurrent.Task[T] = atask
   })
   val lab = new Label("")
-  val progress = new ProgressBar { minWidth = 250 }
-  val al = new Dialog[Unit] {
+  private val progress = new ProgressBar { minWidth = 250 }
+  private val al = new Dialog[Unit] {
     initOwner(main.Main.stage)
     title = atitle
     dialogPane.value.content = new VBox { children ++= Seq(lab, progress) }
