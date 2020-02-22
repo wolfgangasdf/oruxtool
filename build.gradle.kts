@@ -10,8 +10,8 @@ buildscript {
 
 group = "com.oruxtool"
 version = "1.0-SNAPSHOT"
-val geotoolsversion = "21.4"//"13.2"
-val cPlatforms = listOf("mac", "win", "linux") // compile for these platforms. "mac", "linux", "win"
+val geotoolsversion = "22.3"
+val cPlatforms = listOf("mac", "win", "linux") // compile for these platforms. "mac", "win", "linux"
 
 println("Current Java version: ${JavaVersion.current()}")
 java {
@@ -35,8 +35,8 @@ application {
 }
 
 repositories {
-    maven { url = uri("http://download.osgeo.org/webdav/geotools/") }
-    maven { url = uri("http://maven.geo-solutions.it/") }
+    maven { url = uri("https://download.osgeo.org/webdav/geotools/") }
+    maven { url = uri("https://maven.geo-solutions.it/") }
     mavenCentral()
     jcenter()
 }
@@ -45,7 +45,7 @@ repositories {
 javafx {
     modules = listOf("javafx.base", "javafx.controls", "javafx.fxml", "javafx.graphics", "javafx.media", "javafx.swing", "javafx.web")
     // set compileOnly for crosspackage to avoid packaging host javafx jmods for all target platforms
-    configuration = if (project.gradle.startParameter.taskNames.intersect(listOf("crosspackage", "dist")).isNotEmpty()) "compileOnly" else "compile"
+    configuration = if (project.gradle.startParameter.taskNames.intersect(listOf("crosspackage", "dist")).isNotEmpty()) "compileOnly" else "implementation"
 }
 val javaFXOptions = the<JavaFXOptions>()
 
@@ -55,14 +55,13 @@ dependencies {
     implementation("org.squeryl:squeryl_2.13:0.9.14")
     implementation("org.scala-lang.modules:scala-parser-combinators_2.13:1.1.2")
     implementation("org.scalaj:scalaj-http_2.13:2.4.2")
-//    implementation("org.scala-lang:scala-reflect:2.13.1")
-	implementation("org.xerial:sqlite-jdbc:3.8.7")
-  implementation("io.jenetics:jpx:1.0.1")
-  implementation("org.geotools:gt-shapefile:$geotoolsversion")
-  implementation("org.geotools:gt-image:$geotoolsversion")
-  implementation("org.geotools:gt-shapefile:$geotoolsversion")
-  implementation("org.geotools:gt-geotiff:$geotoolsversion")
-	
+	implementation("org.xerial:sqlite-jdbc:3.30.1")
+    implementation("io.jenetics:jpx:1.7.0")
+    implementation("org.geotools:gt-shapefile:$geotoolsversion")
+    implementation("org.geotools:gt-image:$geotoolsversion")
+    implementation("org.geotools:gt-shapefile:$geotoolsversion")
+    implementation("org.geotools:gt-geotiff:$geotoolsversion")
+
     cPlatforms.forEach {platform ->
         val cfg = configurations.create("javafx_$platform")
         JavaFXModule.getJavaFXModules(javaFXOptions.modules).forEach { m ->
@@ -73,18 +72,22 @@ dependencies {
 
 runtime {
     options.set(listOf("--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages"))
-    modules.set(listOf("java.desktop", "java.sql", "jdk.unsupported", "java.scripting", "java.logging", "java.xml", "java.transaction.xa", "java.management", "java.rmi"))
+    modules.set(listOf( // first line suggestModules
+            "java.desktop","jdk.jfr","java.scripting","java.xml","jdk.jsobject","jdk.xml.dom","jdk.unsupported","jdk.unsupported.desktop","java.datatransfer","java.sql","java.logging"
+            ,"java.naming", "java.management.rmi" // essential to load geotiff!
+    ))
     if (cPlatforms.contains("mac")) targetPlatform("mac", System.getenv("JDK_MAC_HOME"))
     if (cPlatforms.contains("win")) targetPlatform("win", System.getenv("JDK_WIN_HOME"))
     if (cPlatforms.contains("linux")) targetPlatform("linux", System.getenv("JDK_LINUX_HOME"))
 }
 
 open class CrossPackage : DefaultTask() {
-    var execfilename = "execfilename"
-    var macicnspath = "macicnspath" // name should be execfilename.icns
+    @org.gradle.api.tasks.Input var execfilename = "execfilename"
+    @org.gradle.api.tasks.Input var macicnspath = "macicnspath"
 
     @TaskAction
     fun crossPackage() {
+        File("${project.buildDir.path}/crosspackage/").mkdirs()
         project.runtime.targetPlatforms.get().forEach { (t, _) ->
             println("targetplatform: $t")
             val imgdir = "${project.runtime.imageDir.get()}/${project.name}-$t"
@@ -95,8 +98,8 @@ open class CrossPackage : DefaultTask() {
                     project.delete(appp)
                     project.copy {
                         into(appp)
-                        from("$macicnspath/$execfilename.icns") {
-                            into("Contents/Resources")
+                        from(macicnspath) {
+                            into("Contents/Resources").rename { "$execfilename.icns" }
                         }
                         from("$imgdir/${project.application.executableDir}/${project.application.applicationName}") {
                             into("Contents/MacOS")
@@ -149,25 +152,13 @@ open class CrossPackage : DefaultTask() {
                     // touch folder to update Finder
                     File(appp).setLastModified(System.currentTimeMillis())
                     // zip it
-                    ant.withGroovyBuilder {
-                        "zip"("destfile" to "${project.buildDir.path}/crosspackage/$execfilename-mac.zip",
-                                "basedir" to "${project.buildDir.path}/crosspackage/mac") {
-                        }
-                    }
+                    org.gradle.kotlin.dsl.support.zipTo(File("${project.buildDir.path}/crosspackage/$execfilename-mac.zip"), File("${project.buildDir.path}/crosspackage/mac"))
                 }
                 "win" -> {
-                    ant.withGroovyBuilder {
-                        "zip"("destfile" to "${project.buildDir.path}/crosspackage/$execfilename-win.zip",
-                                "basedir" to imgdir) {
-                        }
-                    }
+                    org.gradle.kotlin.dsl.support.zipTo(File("${project.buildDir.path}/crosspackage/$execfilename-win.zip"), File(imgdir))
                 }
                 "linux" -> {
-                    ant.withGroovyBuilder {
-                        "zip"("destfile" to "${project.buildDir.path}/crosspackage/$execfilename-linux.zip",
-                                "basedir" to imgdir) {
-                        }
-                    }
+                    org.gradle.kotlin.dsl.support.zipTo(File("${project.buildDir.path}/crosspackage/$execfilename-linux.zip"), File(imgdir))
                 }
             }
         }
@@ -177,7 +168,7 @@ open class CrossPackage : DefaultTask() {
 tasks.register<CrossPackage>("crosspackage") {
     dependsOn("runtime")
     execfilename = "oruxtool"
-    macicnspath = "src/deploy/macosx"
+    macicnspath = "src/deploy/macosx/oruxtool.icns"
 }
 
 tasks.withType(CreateStartScripts::class).forEach {script ->
@@ -200,9 +191,7 @@ tasks["runtime"].doLast {
     }
 }
 
-tasks {
-    @Suppress("UNUSED_VARIABLE") val dist by creating {
-        dependsOn("crosspackage")
-        doLast { println("Created zips in build/crosspackage") }
-    }
+task("dist") {
+    dependsOn("crosspackage")
+    doLast { println("Created zips in build/crosspackage") }
 }

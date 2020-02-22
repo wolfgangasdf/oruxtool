@@ -32,7 +32,7 @@ Packaging:
 
 * Download JDKs for the other platforms (and/or adapt `cPlatforms` in `build.gradle.kts`), extract them and set the environment variables to it:
   * `export JDK_MAC_HOME=...`, `export JDK_WIN_HOME=...`, `export JDK_LINUX_HOME=...`
-* Package for all platforms: `./gradlew dist`. The resulting files are in `build/crosspackage`
+* Package for all platforms: `./gradlew clean dist`. The resulting files are in `build/crosspackage`
 
 ### Suggestions, bug reports, pull requests, contact ###
 Please use the provided tools for bug reports and contributed code. Anything is welcome!

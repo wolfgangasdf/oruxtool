@@ -173,7 +173,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
     }
   }
 
-  def plotTrackPoints2(tps: List[TrackPoint]) {
+  def plotTrackPoints2(tps: List[TrackPoint]): Unit = {
     var olddp: DirectPosition2D = null
     tps.foreach( tp => {
       val dp = new DirectPosition2D(tp.trkptlon.getOrElse(0), tp.trkptlat.getOrElse(0))
@@ -372,6 +372,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
   var coverage: GridCoverage2D = _
 
 
+  //noinspection ConvertExpressionToSAM
   def loadTracksDB: Task[Unit] = new Task[Unit]() {
     override def call(): Unit = {
       try {
@@ -411,6 +412,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
     }
   }
 
+  //noinspection ConvertExpressionToSAM
   def loadImage: Task[Unit] = new Task[Unit]() {
     override def call(): Unit = {
       updateMessage("Loading image...")
@@ -469,7 +471,7 @@ object Main extends JFXApp with Logging {
   private val logfile = java.io.File.createTempFile("oruxtoollog",".txt")
   logps = new io.FileOutputStream(logfile)
 
-  Thread.currentThread().setUncaughtExceptionHandler((t: Thread, e: Throwable) => {
+  Thread.currentThread().setUncaughtExceptionHandler((_: Thread, e: Throwable) => {
     error("Exception: " + e.getMessage)
     e.printStackTrace()
     if (stage.isShowing) Helpers.showExceptionAlert("", e)
@@ -513,7 +515,7 @@ object Main extends JFXApp with Logging {
 
   loadMainScene()
 
-  override def stopApp() {
+  override def stopApp(): Unit = {
     info("*************** stop app")
     DB.terminate()
     sys.exit(0)
