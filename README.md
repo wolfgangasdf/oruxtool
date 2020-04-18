@@ -15,15 +15,14 @@ Import / export possibilities:
 
 ### How to use ###
 
-* [Download the zip](https://github.com/wolfgangasdf/oruxtool/releases) for Mac or (Windows, Linux), extract it somewhere and double-click the app (Mac) or
-  jar file (Windows, Linux).
+* [Download the zip](https://github.com/wolfgangasdf/oruxtool/releases), extract it somewhere and run it. It is not signed, google for "open unsigned mac/win".
 * copy the oruxmaps database (usually `internal sdcard / oruxmaps / tracklogs / oruxmapstracks.db`) to your computer and open it in oruxtool.
 
 Everything should be self-explanatory (watch out for tooltips).
 
 ### How to develop, compile & package ###
 
-* Get Java 13 from https://jdk.java.net
+* Get Java 14 from https://jdk.java.net
 * Clone the repository
 * I use the free community version of [IntelliJ IDEA](https://www.jetbrains.com/idea/download/) with the scala 
 plugin for development, just import the project to get started. 
@@ -47,11 +46,8 @@ Format `geographic (wgs84)` is important to get lat/lon, otherwise it's in UTM.
 * [Scala](http://www.scala-lang.org) and [Scala Build Tool](http://www.scala-sbt.org)
 * [Scalafx](http://scalafx.org) as wrapper for [JavaFX](http://docs.oracle.com/javafx) for the graphical user interface
 * [Squeryl](http://squeryl.org) as database ORM & DSL, using [SQLite](https://www.sqlite.org) embedded as backend
-* [sbt-javafx](https://github.com/kavedaa/sbt-javafx) to make the runnable Reftool jar file
-* [sbt-buildinfo](https://github.com/sbt/sbt-buildinfo) to access build information
-* [sbt-appbundle](https://github.com/Sciss/sbt-appbundle) to make the mac app bundle
 * a modified version of [universalJavaApplicationStub](https://github.com/tofi86/universalJavaApplicationStub) to launch on Mac
 * [JPX](https://github.com/jenetics/jpx) for GPX export
 
 ### License ###
-[GPL](https://www.gnu.org/licenses/gpl.html)
+[MIT](http://opensource.org/licenses/MIT)
