@@ -4,6 +4,7 @@ import java.awt.Taskbar
 
 import io.jenetics.jpx
 import java.io
+import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.prefs.Preferences
 
@@ -37,7 +38,7 @@ import scalafx.scene.image._
 import scalafx.scene.input.{MouseEvent, ScrollEvent}
 import scalafx.scene.layout._
 import scalafx.scene.paint.Color
-import scalafx.stage.{FileChooser, Stage, WindowEvent}
+import scalafx.stage.{FileChooser, WindowEvent}
 
 
 object Settings {
@@ -102,7 +103,7 @@ class ScrollPanImageView extends ScrollPane {
 }
 
 
-class MainScene(stage: Stage) extends Scene with Logging {
+class MainScene extends Scene with Logging {
 
   val tracks = new ObservableBuffer[db.Track]()
   val folders = new ObservableBuffer[String]()
@@ -325,7 +326,7 @@ class MainScene(stage: Stage) extends Scene with Logging {
               gpx.addTrack(jt.build())
               if (isCancelled) throw new InterruptedException("interrupted!")
             })
-            jpx.GPX.write(gpx.build(), Settings.prefs.get(Settings.EXPORTFILEPATH, ""))
+            jpx.GPX.write(gpx.build(), Paths.get(Settings.prefs.get(Settings.EXPORTFILEPATH, "")))
           }
         }
 
@@ -492,7 +493,7 @@ object Main extends JFXApp with Logging {
       width = 1200
       height = 800
       mainScene = tryit {
-        new MainScene(this)
+        new MainScene()
       }
       scene = mainScene
       debug("huhu")

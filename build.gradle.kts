@@ -4,7 +4,7 @@ import org.openjfx.gradle.JavaFXOptions
 
 group = "com.oruxtool"
 version = "1.0-SNAPSHOT"
-val geotoolsversion = "22.3"
+val geotoolsversion = "24.0"
 val cPlatforms = listOf("mac", "win", "linux") // compile for these platforms. "mac", "win", "linux"
 
 println("Current Java version: ${JavaVersion.current()}")
@@ -21,9 +21,9 @@ plugins {
     scala
     id("idea")
     application
-    id("com.github.ben-manes.versions") version "0.28.0"
-    id("org.openjfx.javafxplugin") version "0.0.8"
-    id("org.beryx.runtime") version "1.8.1"
+    id("com.github.ben-manes.versions") version "0.33.0"
+    id("org.openjfx.javafxplugin") version "0.0.9"
+    id("org.beryx.runtime") version "1.11.4"
 }
 
 application {
@@ -32,14 +32,14 @@ application {
 }
 
 repositories {
-    maven { url = uri("https://download.osgeo.org/webdav/geotools/") }
-    maven { url = uri("https://maven.geo-solutions.it/") }
+    maven { url = uri("https://repo.osgeo.org/repository/release") }
     mavenCentral()
     jcenter()
 }
 
 
 javafx {
+    version = "14"
     modules = listOf("javafx.base", "javafx.controls", "javafx.fxml", "javafx.graphics", "javafx.media", "javafx.swing")
     // set compileOnly for crosspackage to avoid packaging host javafx jmods for all target platforms
     configuration = if (project.gradle.startParameter.taskNames.intersect(listOf("crosspackage", "dist")).isNotEmpty()) "compileOnly" else "implementation"
@@ -47,13 +47,13 @@ javafx {
 val javaFXOptions = the<JavaFXOptions>()
 
 dependencies {
-    implementation("org.scala-lang:scala-library:2.13.1")
-    implementation("org.scalafx:scalafx_2.13:12.0.2-R18")
-    implementation("org.squeryl:squeryl_2.13:0.9.14")
+    implementation("org.scala-lang:scala-library:2.13.3")
+    implementation("org.scalafx:scalafx_2.13:14-R19")
+    implementation("org.squeryl:squeryl_2.13:0.9.15")
     implementation("org.scala-lang.modules:scala-parser-combinators_2.13:1.1.2")
     implementation("org.scalaj:scalaj-http_2.13:2.4.2")
-	implementation("org.xerial:sqlite-jdbc:3.30.1")
-    implementation("io.jenetics:jpx:1.7.0")
+	implementation("org.xerial:sqlite-jdbc:3.32.3.2")
+    implementation("io.jenetics:jpx:2.0.0")
     implementation("org.geotools:gt-shapefile:$geotoolsversion")
     implementation("org.geotools:gt-image:$geotoolsversion")
     implementation("org.geotools:gt-shapefile:$geotoolsversion")
@@ -79,8 +79,8 @@ runtime {
 }
 
 open class CrossPackage : DefaultTask() {
-    @org.gradle.api.tasks.Input var execfilename = "execfilename"
-    @org.gradle.api.tasks.Input var macicnspath = "macicnspath"
+    @Input var execfilename = "execfilename"
+    @Input var macicnspath = "macicnspath"
 
     @TaskAction
     fun crossPackage() {
