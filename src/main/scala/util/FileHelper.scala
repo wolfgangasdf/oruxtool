@@ -18,17 +18,5 @@ object FileHelper extends Logging {
     }
   }
 
-  def revealFile(file: java.io.File): Unit = {
-    if (Helpers.isMac) {
-      Runtime.getRuntime.exec(Array("open", "-R", file.getPath))
-    } else if (Helpers.isWin) {
-      Runtime.getRuntime.exec("explorer.exe /select,"+file.getPath)
-    } else if (Helpers.isLinux) {
-      error("not supported OS, tell me how to do it!")
-    } else {
-      error("not supported OS, tell me how to do it!")
-    }
-  }
-
 }
 

@@ -2,44 +2,45 @@ import org.gradle.kotlin.dsl.support.zipTo
 import org.openjfx.gradle.JavaFXModule
 import org.openjfx.gradle.JavaFXOptions
 
-group = "com.oruxtool"
-version = "1.0-SNAPSHOT"
-val geotoolsversion = "24.0"
-val cPlatforms = listOf("mac", "win", "linux") // compile for these platforms. "mac", "win", "linux"
-
-println("Current Java version: ${JavaVersion.current()}")
-if (JavaVersion.current().majorVersion.toInt() < 14) throw GradleException("Use Java >= 14")
-
 buildscript {
     repositories {
         mavenCentral()
-        jcenter()
     }
 }
+
+group = "com.oruxtool"
+version = "1.0-SNAPSHOT"
+val geotoolsversion = "27.1"
+val cPlatforms = listOf("mac", "win", "linux") // compile for these platforms. "mac", "win", "linux"
+val minJavaVersion = 18
+
+println("Current Java version: ${JavaVersion.current()}")
+if (JavaVersion.current().majorVersion.toInt() < minJavaVersion) throw GradleException("Use Java >= $minJavaVersion")
 
 plugins {
     scala
     id("idea")
     application
-    id("com.github.ben-manes.versions") version "0.33.0"
-    id("org.openjfx.javafxplugin") version "0.0.9"
-    id("org.beryx.runtime") version "1.11.4"
+    id("com.github.ben-manes.versions") version "0.42.0"
+    id("org.openjfx.javafxplugin") version "0.0.13"
+    id("org.beryx.runtime") version "1.12.7"
 }
 
 application {
-    mainClassName = "main.Main"
-    applicationDefaultJvmArgs = listOf("-Dprism.verbose=true", "-Dprism.order=sw") // use software renderer
+    mainClass.set("main.Main")
+    applicationDefaultJvmArgs = listOf("-Dprism.verbose=true", "-Dprism.order=sw" // use software renderer
+        , "--add-opens=java.base/java.lang=ALL-UNNAMED"
+    )
 }
 
 repositories {
     maven { url = uri("https://repo.osgeo.org/repository/release") }
     mavenCentral()
-    jcenter()
 }
 
 
 javafx {
-    version = "14"
+    version = "18"
     modules = listOf("javafx.base", "javafx.controls", "javafx.fxml", "javafx.graphics", "javafx.media", "javafx.swing")
     // set compileOnly for crosspackage to avoid packaging host javafx jmods for all target platforms
     configuration = if (project.gradle.startParameter.taskNames.intersect(listOf("crosspackage", "dist")).isNotEmpty()) "compileOnly" else "implementation"
@@ -47,13 +48,13 @@ javafx {
 val javaFXOptions = the<JavaFXOptions>()
 
 dependencies {
-    implementation("org.scala-lang:scala-library:2.13.3")
-    implementation("org.scalafx:scalafx_2.13:14-R19")
-    implementation("org.squeryl:squeryl_2.13:0.9.15")
-    implementation("org.scala-lang.modules:scala-parser-combinators_2.13:1.1.2")
+    implementation("org.scala-lang:scala-library:2.13.10")
+    implementation("org.scalafx:scalafx_2.13:19.0.0-R30")
+    implementation("org.squeryl:squeryl_2.13:0.9.17")
+    implementation("org.scala-lang.modules:scala-parser-combinators_2.13:2.1.1")
     implementation("org.scalaj:scalaj-http_2.13:2.4.2")
-	implementation("org.xerial:sqlite-jdbc:3.32.3.2")
-    implementation("io.jenetics:jpx:2.0.0")
+	implementation("org.xerial:sqlite-jdbc:3.39.3.0")
+    implementation("io.jenetics:jpx:3.0.1")
     implementation("org.geotools:gt-shapefile:$geotoolsversion")
     implementation("org.geotools:gt-image:$geotoolsversion")
     implementation("org.geotools:gt-shapefile:$geotoolsversion")
@@ -155,9 +156,9 @@ open class CrossPackage : DefaultTask() {
                     File("$imgdir/bin/$execfilename.bat").delete() // from runtime, not nice
                     val pf = File("$imgdir/$execfilename.bat")
                     pf.writeText("""
-                        set JLINK_VM_OPTIONS="${project.application.applicationDefaultJvmArgs.joinToString(" ")}"
+                        set JLINK_VM_OPTIONS=${project.application.applicationDefaultJvmArgs.joinToString(" ")}
                         set DIR=%~dp0
-                        start "" "%DIR%\bin\javaw" %JLINK_VM_OPTIONS% -classpath "%DIR%/lib/*" ${project.application.mainClassName} 
+                        start "" "%DIR%\bin\javaw" %JLINK_VM_OPTIONS% -classpath "%DIR%/lib/*" ${project.application.mainClass.get()} 
                     """.trimIndent())
                     zipTo(File("${project.buildDir.path}/crosspackage/$execfilename-win.zip"), File(imgdir))
                 }

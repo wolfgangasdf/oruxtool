@@ -23,8 +23,8 @@ import org.opengis.geometry.Envelope
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import util._
 import scalafx.Includes._
-import scalafx.application.JFXApp
-import scalafx.application.JFXApp.PrimaryStage
+import scalafx.application.JFXApp3
+import scalafx.application.JFXApp3.PrimaryStage
 import scalafx.collections.ObservableBuffer
 import scalafx.embed.swing.SwingFXUtils
 import scalafx.event.ActionEvent
@@ -460,61 +460,62 @@ class MainScene extends Scene with Logging {
   }
 }
 
-object Main extends JFXApp with Logging {
-
-  // redirect console output, must happen on top of this object!
-  private val oldOut = System.out
-  private val oldErr = System.err
-  var logps: io.FileOutputStream = _
-  System.setOut(new io.PrintStream(new MyConsole(false), true))
-  System.setErr(new io.PrintStream(new MyConsole(true), true))
-
-  private val logfile = java.io.File.createTempFile("oruxtoollog",".txt")
-  logps = new io.FileOutputStream(logfile)
-
-  Thread.currentThread().setUncaughtExceptionHandler((_: Thread, e: Throwable) => {
-    error("Exception: " + e.getMessage)
-    e.printStackTrace()
-    if (stage.isShowing) Helpers.showExceptionAlert("", e)
-  })
-
-  class MyConsole(errchan: Boolean) extends io.OutputStream {
-    override def write(b: Int): Unit = {
-      if (logps != null) logps.write(b)
-      (if (errchan) oldErr else oldOut).print(b.toChar.toString)
-    }
-  }
+object Main extends JFXApp3 with Logging {
 
   var mainScene: MainScene = _
+  val logfile = java.io.File.createTempFile("oruxtoollog", ".txt")
 
-  def loadMainScene(): Unit = {
-    stage = new PrimaryStage {
-      title = "Oruxtool"
-      width = 1200
-      height = 800
-      mainScene = tryit {
-        new MainScene()
-      }
-      scene = mainScene
-      debug("huhu")
-      onShown = (_: WindowEvent) => { // works only if no stage shown before...
-        tryit {
-          info("log file: " + logfile)
-          mainScene.afterShown()
-        }
-      }
-      tryit {
-        icons += new Image(getClass.getResource("/icons/icon_16x16.png").toExternalForm)
-        icons += new Image(getClass.getResource("/icons/icon_32x32.png").toExternalForm)
-        icons += new Image(getClass.getResource("/icons/icon_256x256.png").toExternalForm)
+  // JFXApp3: UI init stuff must go into this!
+  override def start(): Unit = {
+    // redirect console output, must happen on top of this object!
+    val oldOut = System.out
+    val oldErr = System.err
+    var logps: io.FileOutputStream = new io.FileOutputStream(logfile)
+    System.setOut(new io.PrintStream(new MyConsole(false), true))
+    System.setErr(new io.PrintStream(new MyConsole(true), true))
+
+    Thread.currentThread().setUncaughtExceptionHandler((_: Thread, e: Throwable) => {
+      error("Exception: " + e.getMessage)
+      e.printStackTrace()
+      if (stage.isShowing) Helpers.showExceptionAlert("", e)
+    })
+
+    class MyConsole(errchan: Boolean) extends io.OutputStream {
+      override def write(b: Int): Unit = {
+        if (logps != null) logps.write(b)
+        (if (errchan) oldErr else oldOut).print(b.toChar.toString)
       }
     }
+
+    def loadMainScene(): Unit = {
+      stage = new PrimaryStage {
+        title = "Oruxtool"
+        width = 1200
+        height = 800
+        mainScene = tryit {
+          new MainScene()
+        }
+        scene = mainScene
+        debug("huhu")
+        onShown = (_: WindowEvent) => { // works only if no stage shown before...
+          tryit {
+            info("log file: " + logfile)
+            mainScene.afterShown()
+          }
+        }
+        tryit {
+          icons += new Image(getClass.getResource("/icons/icon_16x16.png").toExternalForm)
+          icons += new Image(getClass.getResource("/icons/icon_32x32.png").toExternalForm)
+          icons += new Image(getClass.getResource("/icons/icon_256x256.png").toExternalForm)
+        }
+      }
+    }
+
+    // Dock icon
+    if (Helpers.isMac) Taskbar.getTaskbar.setIconImage(ImageIO.read(getClass.getResource("/icons/icon_256x256.png")))
+
+    loadMainScene()
   }
-
-  // Dock icon
-  if (Helpers.isMac) Taskbar.getTaskbar.setIconImage(ImageIO.read(getClass.getResource("/icons/icon_256x256.png")))
-
-  loadMainScene()
 
   override def stopApp(): Unit = {
     info("*************** stop app")
