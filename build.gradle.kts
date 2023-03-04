@@ -1,6 +1,7 @@
 import org.gradle.kotlin.dsl.support.zipTo
 import org.openjfx.gradle.JavaFXModule
 import org.openjfx.gradle.JavaFXOptions
+import java.util.*
 
 buildscript {
     repositories {
@@ -10,20 +11,19 @@ buildscript {
 
 group = "com.oruxtool"
 version = "1.0-SNAPSHOT"
-val geotoolsversion = "27.1"
+val geotoolsversion = "28.2"
 val cPlatforms = listOf("mac", "win", "linux") // compile for these platforms. "mac", "win", "linux"
-val minJavaVersion = 18
-
+val javaVersion = 18
 println("Current Java version: ${JavaVersion.current()}")
-if (JavaVersion.current().majorVersion.toInt() < minJavaVersion) throw GradleException("Use Java >= $minJavaVersion")
+if (JavaVersion.current().majorVersion.toInt() != javaVersion) throw GradleException("Use Java $javaVersion")
 
 plugins {
     scala
     id("idea")
     application
-    id("com.github.ben-manes.versions") version "0.42.0"
+    id("com.github.ben-manes.versions") version "0.44.0"
     id("org.openjfx.javafxplugin") version "0.0.13"
-    id("org.beryx.runtime") version "1.12.7"
+    id("org.beryx.runtime") version "1.13.0"
 }
 
 application {
@@ -40,20 +40,22 @@ repositories {
 
 
 javafx {
-    version = "18"
+    version = "$javaVersion"
     modules = listOf("javafx.base", "javafx.controls", "javafx.fxml", "javafx.graphics", "javafx.media", "javafx.swing")
     // set compileOnly for crosspackage to avoid packaging host javafx jmods for all target platforms
-    configuration = if (project.gradle.startParameter.taskNames.intersect(listOf("crosspackage", "dist")).isNotEmpty()) "compileOnly" else "implementation"
+    if (project.gradle.startParameter.taskNames.intersect(listOf("crosspackage", "dist")).isNotEmpty()) {
+        configuration = "compileOnly"
+    }
 }
 val javaFXOptions = the<JavaFXOptions>()
 
 dependencies {
     implementation("org.scala-lang:scala-library:2.13.10")
-    implementation("org.scalafx:scalafx_2.13:19.0.0-R30")
-    implementation("org.squeryl:squeryl_2.13:0.9.17")
-    implementation("org.scala-lang.modules:scala-parser-combinators_2.13:2.1.1")
+    implementation("org.scalafx:scalafx_2.13:18.0.2-R29")
+    implementation("org.squeryl:squeryl_2.13:0.9.18")
+    implementation("org.scala-lang.modules:scala-parser-combinators_2.13:2.2.0")
     implementation("org.scalaj:scalaj-http_2.13:2.4.2")
-	implementation("org.xerial:sqlite-jdbc:3.39.3.0")
+	implementation("org.xerial:sqlite-jdbc:3.41.0.0")
     implementation("io.jenetics:jpx:3.0.1")
     implementation("org.geotools:gt-shapefile:$geotoolsversion")
     implementation("org.geotools:gt-image:$geotoolsversion")
@@ -203,4 +205,17 @@ task("dist") {
         project.delete(project.runtime.imageDir.get(), project.runtime.jreDir.get(), "${project.buildDir.path}/install")
         println("Created zips in build/crosspackage")
     }
+}
+
+fun isNonStable(version: String): Boolean {
+    val stableKeyword = listOf("RELEASE", "FINAL", "GA").any { version.uppercase(Locale.getDefault()).contains(it) }
+    val regex = "^[0-9,.v-]+(-r)?$".toRegex()
+    val isStable = stableKeyword || regex.matches(version)
+    return isStable.not()
+}
+tasks.withType<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask> {
+    rejectVersionIf {
+        isNonStable(candidate.version)
+    }
+    gradleReleaseChannel = "current"
 }
