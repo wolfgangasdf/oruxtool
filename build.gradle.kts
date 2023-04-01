@@ -11,9 +11,9 @@ buildscript {
 
 group = "com.oruxtool"
 version = "1.0-SNAPSHOT"
-val geotoolsversion = "28.2"
+val geotoolsversion = "29.0"
 val cPlatforms = listOf("mac", "win", "linux") // compile for these platforms. "mac", "win", "linux"
-val javaVersion = 18
+val javaVersion = 19
 println("Current Java version: ${JavaVersion.current()}")
 if (JavaVersion.current().majorVersion.toInt() != javaVersion) throw GradleException("Use Java $javaVersion")
 
@@ -51,11 +51,11 @@ val javaFXOptions = the<JavaFXOptions>()
 
 dependencies {
     implementation("org.scala-lang:scala-library:2.13.10")
-    implementation("org.scalafx:scalafx_2.13:18.0.2-R29")
+    implementation("org.scalafx:scalafx_2.13:19.0.0-R30")
     implementation("org.squeryl:squeryl_2.13:0.9.18")
     implementation("org.scala-lang.modules:scala-parser-combinators_2.13:2.2.0")
     implementation("org.scalaj:scalaj-http_2.13:2.4.2")
-	implementation("org.xerial:sqlite-jdbc:3.41.0.0")
+	implementation("org.xerial:sqlite-jdbc:3.41.2.1")
     implementation("io.jenetics:jpx:3.0.1")
     implementation("org.geotools:gt-shapefile:$geotoolsversion")
     implementation("org.geotools:gt-image:$geotoolsversion")
@@ -76,9 +76,34 @@ runtime {
             "java.desktop","jdk.jfr","java.scripting","java.xml","jdk.jsobject","jdk.xml.dom","jdk.unsupported","jdk.unsupported.desktop","java.datatransfer","java.sql","java.logging"
             ,"java.naming", "java.management.rmi" // essential to load geotiff!
     ))
-    if (cPlatforms.contains("mac")) targetPlatform("mac", System.getenv("JDK_MAC_HOME"))
-    if (cPlatforms.contains("win")) targetPlatform("win", System.getenv("JDK_WIN_HOME"))
-    if (cPlatforms.contains("linux")) targetPlatform("linux", System.getenv("JDK_LINUX_HOME"))
+
+    // sets targetPlatform JDK for host os from toolchain, for others (cross-package) from adoptium / jdkDownload
+    // https://github.com/beryx/badass-runtime-plugin/issues/99
+    // if https://github.com/gradle/gradle/issues/18817 is solved: use toolchain
+    fun setTargetPlatform(jfxplatformname: String) {
+        val platf = if (jfxplatformname == "win") "windows" else jfxplatformname // jfx expects "win" but adoptium needs "windows"
+        val os = org.gradle.internal.os.OperatingSystem.current()
+        val oss = if (os.isLinux) "linux" else if (os.isWindows) "windows" else if (os.isMacOsX) "mac" else ""
+        if (oss == "") throw GradleException("unsupported os")
+        if (oss == platf) {
+            targetPlatform(jfxplatformname, javaToolchains.launcherFor(java.toolchain).get().executablePath.asFile.parentFile.parentFile.absolutePath)
+        } else { // https://api.adoptium.net/q/swagger-ui/#/Binary/getBinary
+            targetPlatform(jfxplatformname) {
+                val ddir = "${if (os.isWindows) "c:/" else "/"}tmp/jdk$javaVersion-$platf"
+                println("downloading jdks to or using jdk from $ddir, delete folder to update jdk!")
+                @Suppress("INACCESSIBLE_TYPE")
+                setJdkHome(
+                    jdkDownload("https://api.adoptium.net/v3/binary/latest/$javaVersion/ga/$platf/x64/jdk/hotspot/normal/eclipse?project=jdk",
+                        closureOf<org.beryx.runtime.util.JdkUtil.JdkDownloadOptions> {
+                            downloadDir = ddir // put jdks here so different projects can use them!
+                            archiveExtension = if (platf == "windows") "zip" else "tar.gz"
+                        }
+                    )
+                )
+            }
+        }
+    }
+    cPlatforms.forEach { setTargetPlatform(it) }
 }
 
 open class CrossPackage : DefaultTask() {
