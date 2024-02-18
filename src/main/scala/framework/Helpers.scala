@@ -83,8 +83,7 @@ object Helpers extends Logging {
     showTextAlert(AlertType.Error, "Exception", xx, "Exception stacktrace:", exceptionText, null)
   }
 
-  def showTextAlert(alerttype: AlertType, titletext: String, headertext: String, contenttext: String, text: String, buttons: Seq[ButtonType] = null): Option[ButtonType] = {
-    val exceptionText = text
+  def showTextAlert(alerttype: AlertType, titletext: String, headertext: String, contenttext: String, exceptionText: String, buttons: Seq[ButtonType] = null): Option[ButtonType] = {
     val textArea = new TextArea {
       text = exceptionText
       editable = false

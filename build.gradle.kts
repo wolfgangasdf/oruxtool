@@ -3,19 +3,20 @@ import org.openjfx.gradle.JavaFXModule
 import org.openjfx.gradle.JavaFXOptions
 import java.util.*
 
+group = "com.oruxtool"
+version = "1.0-SNAPSHOT"
+val geotoolsversion = "30.2"
+val cPlatforms = listOf("mac-aarch64", "linux", "win") // compile for these platforms. "mac", "mac-aarch64", "linux", "win"
+val needMajorJavaVersion = 21
+val javaVersion = System.getProperty("java.version")!!
+println("Current Java version: $javaVersion")
+if (JavaVersion.current().majorVersion.toInt() != needMajorJavaVersion) throw GradleException("Use Java $needMajorJavaVersion")
+
 buildscript {
     repositories {
         mavenCentral()
     }
 }
-
-group = "com.oruxtool"
-version = "1.0-SNAPSHOT"
-val geotoolsversion = "29.0"
-val cPlatforms = listOf("mac-aarch64", "linux", "win") // compile for these platforms. "mac", "mac-aarch64", "linux", "win"
-val javaVersion = 19
-println("Current Java version: ${JavaVersion.current()}")
-if (JavaVersion.current().majorVersion.toInt() != javaVersion) throw GradleException("Use Java $javaVersion")
 
 plugins {
     scala
@@ -40,7 +41,7 @@ repositories {
 
 
 javafx {
-    version = "$javaVersion"
+    version = javaVersion
     modules = listOf("javafx.base", "javafx.controls", "javafx.fxml", "javafx.graphics", "javafx.media", "javafx.swing")
     // set compileOnly for crosspackage to avoid packaging host javafx jmods for all target platforms
     if (project.gradle.startParameter.taskNames.intersect(listOf("crosspackage", "dist")).isNotEmpty()) {
@@ -50,13 +51,13 @@ javafx {
 val javaFXOptions = the<JavaFXOptions>()
 
 dependencies {
-    implementation("org.scala-lang:scala-library:2.13.10")
-    implementation("org.scalafx:scalafx_2.13:19.0.0-R30")
-    implementation("org.squeryl:squeryl_2.13:0.9.18")
-    implementation("org.scala-lang.modules:scala-parser-combinators_2.13:2.2.0")
+    implementation("org.scala-lang:scala-library:2.13.12")
+    implementation("org.scalafx:scalafx_2.13:21.0.0-R32")
+    implementation("org.squeryl:squeryl_2.13:0.10.0")
+    implementation("org.scala-lang.modules:scala-parser-combinators_2.13:2.3.0")
     implementation("org.scalaj:scalaj-http_2.13:2.4.2")
-	implementation("org.xerial:sqlite-jdbc:3.41.2.1")
-    implementation("io.jenetics:jpx:3.0.1")
+	implementation("org.xerial:sqlite-jdbc:3.45.1.0")
+    implementation("io.jenetics:jpx:3.1.0")
     implementation("org.geotools:gt-shapefile:$geotoolsversion")
     implementation("org.geotools:gt-image:$geotoolsversion")
     implementation("org.geotools:gt-shapefile:$geotoolsversion")
@@ -94,7 +95,7 @@ runtime {
                 println("downloading jdks to or using jdk from $ddir, delete folder to update jdk!")
                 @Suppress("INACCESSIBLE_TYPE")
                 setJdkHome(
-                    jdkDownload("https://api.adoptium.net/v3/binary/latest/$javaVersion/ga/$platf/x64/jdk/hotspot/normal/eclipse?project=jdk",
+                    jdkDownload("https://api.adoptium.net/v3/binary/latest/$needMajorJavaVersion/ga/$platf/x64/jdk/hotspot/normal/eclipse?project=jdk",
                         closureOf<org.beryx.runtime.util.JdkUtil.JdkDownloadOptions> {
                             downloadDir = ddir // put jdks here so different projects can use them!
                             archiveExtension = if (platf == "windows") "zip" else "tar.gz"

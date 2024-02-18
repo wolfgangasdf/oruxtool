@@ -1,26 +1,26 @@
 package main
 
 import java.awt.Taskbar
-
 import io.jenetics.jpx
+
 import java.io
 import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.prefs.Preferences
-
 import javafx.concurrent.Task
+
 import javax.imageio.ImageIO
 import db.SquerylEntrypointForMyApp._
 import db.{DB, Track, TrackPoint}
 import framework.Helpers._
 import framework.{Helpers, Logging, MyWorker}
+import org.geotools.api.geometry.Bounds
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem
 import org.geotools.coverage.grid.GridCoverage2D
 import org.geotools.gce.geotiff.GeoTiffReader
-import org.geotools.geometry.DirectPosition2D
+import org.geotools.geometry.Position2D
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.geotools.util.factory.Hints
-import org.opengis.geometry.Envelope
-import org.opengis.referencing.crs.CoordinateReferenceSystem
 import util._
 import scalafx.Includes._
 import scalafx.application.JFXApp3
@@ -39,6 +39,8 @@ import scalafx.scene.input.{MouseEvent, ScrollEvent}
 import scalafx.scene.layout._
 import scalafx.scene.paint.Color
 import scalafx.stage.{FileChooser, WindowEvent}
+
+import java.io.File
 
 
 object Settings {
@@ -175,9 +177,9 @@ class MainScene extends Scene with Logging {
   }
 
   def plotTrackPoints2(tps: List[TrackPoint]): Unit = {
-    var olddp: DirectPosition2D = null
+    var olddp: Position2D = null
     tps.foreach( tp => {
-      val dp = new DirectPosition2D(tp.trkptlon.getOrElse(0), tp.trkptlat.getOrElse(0))
+      val dp = new Position2D(tp.trkptlon.getOrElse(0), tp.trkptlat.getOrElse(0))
       val dist = if (olddp != null) dp.distance(olddp) else 0
       val dpgrid = coverage.getGridGeometry.worldToGrid(dp)
       val (rx, ry) = (dpgrid.getCoordinateValue(0), dpgrid.getCoordinateValue(1))
@@ -369,7 +371,7 @@ class MainScene extends Scene with Logging {
   }
 
   var crs: CoordinateReferenceSystem = _
-  var env: Envelope = _
+  var env: Bounds = _
   var coverage: GridCoverage2D = _
 
 
@@ -463,14 +465,14 @@ class MainScene extends Scene with Logging {
 object Main extends JFXApp3 with Logging {
 
   var mainScene: MainScene = _
-  val logfile = java.io.File.createTempFile("oruxtoollog", ".txt")
+  val logfile: File = java.io.File.createTempFile("oruxtoollog", ".txt")
 
   // JFXApp3: UI init stuff must go into this!
   override def start(): Unit = {
     // redirect console output, must happen on top of this object!
     val oldOut = System.out
     val oldErr = System.err
-    var logps: io.FileOutputStream = new io.FileOutputStream(logfile)
+    val logps: io.FileOutputStream = new io.FileOutputStream(logfile)
     System.setOut(new io.PrintStream(new MyConsole(false), true))
     System.setErr(new io.PrintStream(new MyConsole(true), true))
 
